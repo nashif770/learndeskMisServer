@@ -1,76 +1,96 @@
-const express = require("express"); // 1. Import the whole module
-const studentData = require("./studentData.json");
-const userData = require("./userData.json");
+const { user, pass } = require("./user");
+const express = require("express");
+const { MongoClient, ServerApiVersion } = require("mongodb");
 const cors = require("cors");
-const app = express(); // 2. Initialize the app
+
+const app = express();
 const port = 5000;
 
+// ----------------- Middleware -----------------
 app.use(cors());
 app.use(express.json());
 
-let users = []; // replace with real DB later
+// ---------------- MongoDB ---------------------
+const uri = `mongodb+srv://${user}:${pass}@learndesk.djnqq4s.mongodb.net/?appName=LearnDesk`;
 
-app.get("/", (req, res) => {
-  res.send("You have tried to enter the hole");
-});
-// ------------------ Students --------------------
-app.get("/studentData", (req, res) => {
-    // console.log(studentData)
-    res.send(studentData);
-});
-
-app.get("/studentData/:id", (req, res) => {
-  const id = parseInt(req.params.id);
-  // const user = studentData.find( studentInfo => console.log(studentInfo.id, id) )
-  const user = studentData.find((studentInfo) => studentInfo.id === id);
-  res.send(user);
+const client = new MongoClient(uri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  },
 });
 
-app.post("/studentData", (req, res) => {
-    const student = req.body;
-    
-  console.log("Received student data:", student);
-  
-  // Example: store in array
-  studentData.push(student);
+let studentCollection; // ✅ global reference
 
-  res.status(201).json({
-      message: "Student data received successfully",
-      data: student,
+async function startServer() {
+  try {
+    await client.connect();
+    console.log("✅ MongoDB connected");
+
+    const db = client.db("learnDeskMis");
+    studentCollection = db.collection("studentDB");
+
+    // ---------------- Routes -----------------
+
+    app.get("/", (req, res) => {
+      res.send("Server is running");
     });
-});
-// ------------------ Students --------------------
 
-app.get("/studentData", (req, res) => {
-    // console.log(studentData)
-    res.send(studentData);
-});
+    // ---------------- Students ----------------
 
-//------------------- UserData -------------------
+    app.get("/studentData", async (req, res) => {
+      const students = await studentCollection.find().toArray();
+      res.send(students);
+    });
 
+    app.get("/studentData/:id", async (req, res) => {
+      const id = req.params.id;
+      const student = await studentCollection.findOne({ _id: id });
+      res.send(student);
+    });
 
-app.post("/userData", (req, res) => {
-  const user = req.body;
+    app.post("/studentData", async (req, res) => {
+      try {
+        const newStudent = req.body;
+        console.log("📥 Received student:", newStudent);
 
-  if (!user.uid || !user.email) {
-    return res.status(400).json({ message: "UID and email required" });
+        const result = await studentCollection.insertOne(newStudent);
+
+        res.status(201).json({
+          success: true,
+          insertedId: result.insertedId,
+          data: newStudent,
+        });
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Failed to add student" });
+      }
+    });
+
+    // ---------------- Users -------------------
+
+    const users = [];
+
+    app.post("/userData", (req, res) => {
+      const user = req.body;
+
+      if (!user.uid || !user.email) {
+        return res.status(400).json({ message: "UID and email required" });
+      }
+
+      users.push(user);
+      res.status(201).json({ message: "User saved", user });
+    });
+
+    // ---------------- Start Server -------------
+    app.listen(port, () => {
+      console.log(`🚀 Server running on port ${port}`);
+    });
+
+  } catch (error) {
+    console.error("❌ Server failed to start", error);
   }
+}
 
-  // store user (in real app, use DB)
-  users.push(user);
-
-  res.status(201).json({ message: "User saved", user });
-});
-
-app.get("/userData", (req, res) => {
-    // console.log(studentData)
-    res.send(userData);
-});
-
-//------------------- UserData -------------------
-
-//---------------------------------------------------------
-// 3. Use .listen(), not .listenerCount()
-app.listen(port, () => {
-  console.log(`My server is running on ${port}`);
-});
+startServer();
