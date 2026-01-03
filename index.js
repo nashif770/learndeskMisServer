@@ -1,7 +1,8 @@
-const { user, pass } = require("./user");
+// const { db_user, db_pass } = require("./user");
 const express = require("express");
 const { MongoClient, ServerApiVersion } = require("mongodb");
 const cors = require("cors");
+require('dotenv').config();
 
 const app = express();
 const port = 5000;
@@ -11,7 +12,7 @@ app.use(cors());
 app.use(express.json());
 
 // ---------------- MongoDB ---------------------
-const uri = `mongodb+srv://${user}:${pass}@learndesk.djnqq4s.mongodb.net/?appName=LearnDesk`;
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@learndesk.djnqq4s.mongodb.net/?appName=LearnDesk`;
 
 const client = new MongoClient(uri, {
   serverApi: {
