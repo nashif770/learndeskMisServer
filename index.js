@@ -1,4 +1,3 @@
-// const { db_user, db_pass } = require("./user");
 const express = require("express");
 const { MongoClient, ServerApiVersion } = require("mongodb");
 const cors = require("cors");
