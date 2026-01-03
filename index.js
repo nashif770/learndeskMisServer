@@ -21,15 +21,14 @@ const client = new MongoClient(uri, {
   },
 });
 
-let studentCollection; // ✅ global reference
-
 async function startServer() {
   try {
     await client.connect();
     console.log("✅ MongoDB connected");
 
-    const db = client.db("learnDeskMis");
-    studentCollection = db.collection("studentDB");
+    const database = client.db("learnDeskMis");
+    const studentCollection = database.collection("studentDB");
+    const userCollection = database.collection("userDB");
 
     // ---------------- Routes -----------------
 
@@ -54,9 +53,7 @@ async function startServer() {
       try {
         const newStudent = req.body;
         console.log("📥 Received student:", newStudent);
-
         const result = await studentCollection.insertOne(newStudent);
-
         res.status(201).json({
           success: true,
           insertedId: result.insertedId,
@@ -70,24 +67,28 @@ async function startServer() {
 
     // ---------------- Users -------------------
 
-    const users = [];
-
-    app.post("/userData", (req, res) => {
-      const user = req.body;
-
-      if (!user.uid || !user.email) {
-        return res.status(400).json({ message: "UID and email required" });
+    app.post("/userData", async (req, res) => {
+      const newUser = req.body;
+      console.log(newUser)
+      try {
+        const newUser = req.body;
+        console.log("📥 Received student:", newUser);
+        const result = await userCollection.insertOne(newUser);
+        res.status(201).json({
+          success: true,
+          insertedId: result.insertedId,
+          data: newUser,
+        });
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Failed to add User" });
       }
-
-      users.push(user);
-      res.status(201).json({ message: "User saved", user });
     });
 
     // ---------------- Start Server -------------
     app.listen(port, () => {
       console.log(`🚀 Server running on port ${port}`);
     });
-
   } catch (error) {
     console.error("❌ Server failed to start", error);
   }
