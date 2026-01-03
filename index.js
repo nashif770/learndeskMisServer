@@ -68,8 +68,6 @@ async function startServer() {
     // ---------------- Users -------------------
 
     app.post("/userData", async (req, res) => {
-      const newUser = req.body;
-      console.log(newUser)
       try {
         const newUser = req.body;
         console.log("📥 Received student:", newUser);
